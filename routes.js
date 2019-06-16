@@ -52,4 +52,4 @@ const requestHandler = (req,res) => {
 // module.exports.someText = "New some text";
 
 exports.handler = requestHandler;
-exports.someText = "New some text";
+exports.someText = "New some text with nodemon";
