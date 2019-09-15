@@ -8,7 +8,8 @@ exports.getAddProduct = (req, res, next) => {
     formsCSS: true,
     productCSS: true,
     activeAddProduct: true,
-    editing : false
+    editing : false,
+    isAuthenticated: req.session.isLoggedIn
   });
 };
 exports.postAddProduct = (req, res, next) => {
@@ -54,7 +55,8 @@ exports.getEditProduct = (req, res, next) => {
         productCSS: true,
         activeAddProduct: true,
         editing: editMode,
-        product: product
+        product: product,
+        isAuthenticated: req.session.isLoggedIn
       });
   
     
@@ -93,7 +95,8 @@ exports.getProducts = (req, res, next) => {
     res.render('admin/products', {
       prods: products,
       pageTitle: 'Admin Products',
-      path: '/admin/products'
+      path: '/admin/products',
+      isAuthenticated: req.session.isLoggedIn
     });
   })
   .catch(err=>console.log(err));
