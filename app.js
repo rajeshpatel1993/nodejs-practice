@@ -72,6 +72,7 @@ app.use(authRoutes);
 
 app.use(errorController.get404);
 
+// mongoose.set('debug', true);
 
 mongoose.connect(MONGODB_URI).
 then(result => {
