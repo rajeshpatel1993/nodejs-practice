@@ -12,6 +12,9 @@ const multer = require('multer');
 const MongoDBStore = require('connect-mongodb-session')(session);
 const rootDir = require('./util/path');
 
+const shopController = require('./controllers/shop');
+const isAuth = require('./middleware/is-auth');
+
 const errorController = require('./controllers/error');
 
 const User = require('./models/user');
@@ -66,12 +69,11 @@ app.use(session({secret: 'ai123',
  store: store
 }));
 
-app.use(csrfProtection);
+
 app.use(flash());
 
 app.use((req,res,next) => {
   res.locals.isAuthenticated = req.session.isLoggedIn;
-  res.locals.csrfToken = req.csrfToken();
   next();
 });
 
@@ -95,8 +97,12 @@ app.use((req, res, next) => {
 
   
 
-
-
+app.post('/create-order',isAuth, shopController.postOrder);
+app.use(csrfProtection);
+app.use((req,res,next) => {
+  res.locals.csrfToken = req.csrfToken();
+  next();
+});
 
 app.use('/admin', adminRoutes);
 app.use(shopRoutes);
