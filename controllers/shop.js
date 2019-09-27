@@ -6,6 +6,8 @@ const PDFDocument = require('pdfkit');
 const Product = require('../models/product');
 const Order = require('../models/order');
 
+const stripe = require('stripe')('pk_test_ICfgAvQdxgvpqOVMvQ7UJZHE00AEV72QLe');
+
 
 
 const ITEMS_PER_PAGE = 2;
@@ -140,28 +142,42 @@ exports.postCartDeleteProduct = (req, res, next) => {
 };
 
 exports.postOrder = (req, res, next) => {
-  req.user.populate('cart.items.productId')
-  .execPopulate()
-  .then(user => {
-    const products = user.cart.items.map(i => {
-      return {quantity: i.quantity, product: {...i.productId._doc}};
+  // Token is created using Checkout or Elements!
+  // Get the payment token ID submitted by the form:
+  const token = req.body.stripeToken; // Using Express
+  let totalSum = 0;
 
+  req.user
+    .populate('cart.items.productId')
+    .execPopulate()
+    .then(user => {  
+      user.cart.items.forEach(p => {
+        totalSum += p.quantity * p.productId.price;
+      });
+
+      const products = user.cart.items.map(i => {
+        return { quantity: i.quantity, product: { ...i.productId._doc } };
+      });
+      const order = new Order({
+        user: {
+          email: req.user.email,
+          userId: req.user
+        },
+        products: products
+      });
+      return order.save();
     })
-    const order = new Order({
-      user: {
-        email: req.user.email,
-        userId: req.user
-      },
-      products: products
-  
-    });
-
-    return order.save();
-
-  }).then(result => {
-    return req.user.clearCart();
-      
-    }).then(()=>{
+    .then(result => {
+      const charge = stripe.charges.create({
+        amount: totalSum * 100,
+        currency: 'usd',
+        description: 'Demo Order',
+        source: token,
+        metadata: { order_id: result._id.toString() }
+      });
+      return req.user.clearCart();
+    })
+    .then(() => {
       res.redirect('/orders');
     })
     .catch(err => {
@@ -252,4 +268,26 @@ exports.getInvoice = (req, res, next) => {
 };
 
 
-
+exports.getCheckout = (req, res, next) => {
+  req.user
+    .populate('cart.items.productId')
+    .execPopulate()
+    .then(user => {
+      const products = user.cart.items;
+      let total = 0;
+      products.forEach(p => {
+        total += p.quantity * p.productId.price;
+      });
+      res.render('shop/checkout', {
+        path: '/checkout',
+        pageTitle: 'Checkout',
+        products: products,
+        totalSum: total
+      });
+    })
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
+};
